@@ -1,0 +1,36 @@
+# Entornos virtuales
+venv/
+env/
+.venv/
+*.egg-info/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Django
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+media/
+
+# DB Browser for SQLite (archivos temporales de bloqueo)
+*.sqlite3-shm
+*.sqlite3-wal
+
+# Variables de entorno
+.env
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Migraciones (opcional: descomenta solo si tu equipo decide no versionarlas)
+# */migrations/*.py
+# !*/migrations/__init__.py
