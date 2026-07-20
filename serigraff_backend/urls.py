@@ -29,9 +29,12 @@ urlpatterns = [
 if settings.DEBUG:
     # 1. Servir archivos multimedia (imágenes de productos, diseños, etc.)
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-    
-    # 2. REQUISITO DIAGNÓSTICO: Inyectar las rutas de Django Debug Toolbar
-    import debug_toolbar
-    urlpatterns = [
-        path('__debug__/', include(debug_toolbar.urls)),
-    ] + urlpatterns
+
+    # 2. REQUISITO DIAGNÓSTICO: Inyectar las rutas de Django Debug Toolbar si está disponible.
+    try:
+        import debug_toolbar
+        urlpatterns = [
+            path('__debug__/', include(debug_toolbar.urls)),
+        ] + urlpatterns
+    except ImportError:
+        pass

@@ -36,7 +36,6 @@ THIRD_PARTY_APPS = [
     'rest_framework.authtoken',  # Autenticación por token para la app móvil
     'corsheaders',               # Permite peticiones desde la app móvil / frontend
     'django_filters',            # Filtros avanzados en los endpoints DRF
-    'debug_toolbar',             # REQUISITO DIAGNÓSTICO: Para identificar consultas N+1
 ]
 
 LOCAL_APPS = [
@@ -58,7 +57,6 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'debug_toolbar.middleware.DebugToolbarMiddleware',  # REQUISITO DIAGNÓSTICO: Captura Queries
 ]
 
 ROOT_URLCONF = 'serigraff_backend.urls'
@@ -103,6 +101,13 @@ CACHES = {
         }
     }
 }
+
+CELERY_BROKER_URL = 'redis://127.0.0.1:6379/0'
+CELERY_RESULT_BACKEND = 'redis://127.0.0.1:6379/0'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'America/Guayaquil'
 
 
 # Modelo de usuario personalizado (ver app 'usuarios')

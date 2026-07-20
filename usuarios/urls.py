@@ -1,8 +1,10 @@
-from django.urls import path
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import UsuarioViewSet
 
-# TODO (siguiente paso): registrar aquí el UsuarioViewSet cuando
-# construyamos serializers.py y views.py para esta app.
+router = DefaultRouter()
+router.register(r'', UsuarioViewSet, basename='usuario')
 
 urlpatterns = [
-    # No hay rutas registradas todavía.
+    path('', include(router.urls)),
 ]
