@@ -36,6 +36,7 @@ THIRD_PARTY_APPS = [
     'rest_framework.authtoken',  # Autenticación por token para la app móvil
     'corsheaders',               # Permite peticiones desde la app móvil / frontend
     'django_filters',            # Filtros avanzados en los endpoints DRF
+    'debug_toolbar',             # REQUISITO DIAGNÓSTICO: Para identificar consultas N+1
 ]
 
 LOCAL_APPS = [
@@ -57,6 +58,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'debug_toolbar.middleware.DebugToolbarMiddleware',  # REQUISITO DIAGNÓSTICO: Captura Queries
 ]
 
 ROOT_URLCONF = 'serigraff_backend.urls'
@@ -87,6 +89,18 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
+    }
+}
+
+
+# REQUISITO CACHÉ: Configuración de la Caché con Redis (Conectado a Docker)
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://127.0.0.1:6379/1",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        }
     }
 }
 
@@ -139,5 +153,9 @@ REST_FRAMEWORK = {
 }
 
 # CORS: mientras desarrollas la app móvil, permite todos los orígenes.
-# Restringe esto a dominios específicos antes de producción.
 CORS_ALLOW_ALL_ORIGINS = True
+
+# REQUISITO DIAGNÓSTICO: Configuración para que Debug Toolbar funcione de manera local
+INTERNAL_IPS = [
+    "127.0.0.1",
+]
