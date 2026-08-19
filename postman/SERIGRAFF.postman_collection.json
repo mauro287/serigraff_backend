@@ -1,0 +1,51 @@
+{
+  "info": {
+    "name": "SERIGRAFF Backend",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8000" },
+    { "key": "token", "value": "" },
+    { "key": "username", "value": "admin" },
+    { "key": "password", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Registrar cliente",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"username\": \"cliente_demo\",\n  \"password\": \"ClaveSegura123\"\n}" },
+        "url": "{{baseUrl}}/api/usuarios/registro/"
+      }
+    },
+    {
+      "name": "Obtener token",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}" },
+        "url": "{{baseUrl}}/api/auth/token/"
+      }
+    },
+    {
+      "name": "Listar productos - cache aside",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/productos/"
+      }
+    },
+    {
+      "name": "Crear producto - invalida cache",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Token {{token}}" }
+        ],
+        "body": { "mode": "raw", "raw": "{\n  \"nombre\": \"Producto demo\",\n  \"categoria\": 1\n}" },
+        "url": "{{baseUrl}}/api/productos/"
+      }
+    }
+  ]
+}

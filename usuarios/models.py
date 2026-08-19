@@ -35,7 +35,7 @@ class Usuario(AbstractUser):
 
     @property
     def es_personal_interno(self):
-        return self.tipo_usuario in (
+        return self.is_superuser or self.tipo_usuario in (
             self.TipoUsuario.ADMINISTRADOR,
             self.TipoUsuario.PERSONAL_OPERATIVO,
         )

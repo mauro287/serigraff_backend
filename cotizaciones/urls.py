@@ -1,7 +1,11 @@
-from django.urls import path
+from django.urls import include, path
+from rest_framework.routers import DefaultRouter
 
-# TODO (siguiente paso): registrar aquí el CotizacionViewSet
+from .views import CotizacionViewSet
+
+router = DefaultRouter()
+router.register(r'cotizaciones', CotizacionViewSet, basename='cotizacion')
 
 urlpatterns = [
-    # No hay rutas registradas todavía.
+    path('', include(router.urls)),
 ]

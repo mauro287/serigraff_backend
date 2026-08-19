@@ -1,7 +1,11 @@
-from django.urls import path
+from django.urls import include, path
+from rest_framework.routers import DefaultRouter
 
-# TODO (siguiente paso): registrar aquí el ProveedorViewSet
+from .views import ProveedorViewSet
+
+router = DefaultRouter()
+router.register(r'proveedores', ProveedorViewSet, basename='proveedor')
 
 urlpatterns = [
-    # No hay rutas registradas todavía.
+    path('', include(router.urls)),
 ]

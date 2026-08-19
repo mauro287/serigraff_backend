@@ -1,10 +1,9 @@
 from celery import shared_task
 from django.core.cache import cache
+
+from .cache import CACHE_KEY_PRODUCTOS_PRINCIPAL, CACHE_TTL_PRODUCTOS
 from .models import Producto
 from .serializers import ProductoSerializer
-
-CACHE_TTL = 60 * 5
-CACHE_KEY_PRODUCTOS = 'productos_list_v1'
 
 
 @shared_task
@@ -14,5 +13,5 @@ def warmup_product_cache():
         'id', 'nombre', 'categoria', 'categoria__nombre'
     ).all()
     data = ProductoSerializer(productos, many=True).data
-    cache.set(CACHE_KEY_PRODUCTOS, data, CACHE_TTL)
+    cache.set(CACHE_KEY_PRODUCTOS_PRINCIPAL, data, CACHE_TTL_PRODUCTOS)
     return len(data)

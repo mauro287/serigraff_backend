@@ -1,7 +1,13 @@
-from django.urls import path
+from django.urls import include, path
+from rest_framework.routers import DefaultRouter
 
-# TODO (siguiente paso): registrar aquí PedidoViewSet y VentaViewSet
+from .views import DetallePedidoViewSet, PedidoViewSet, VentaViewSet
+
+router = DefaultRouter()
+router.register(r'pedidos', PedidoViewSet, basename='pedido')
+router.register(r'detalle-pedidos', DetallePedidoViewSet, basename='detalle-pedido')
+router.register(r'ventas', VentaViewSet, basename='venta')
 
 urlpatterns = [
-    # No hay rutas registradas todavía.
+    path('', include(router.urls)),
 ]

@@ -1,83 +1,71 @@
 from django.core.cache import cache
-from rest_framework import viewsets, permissions
-from rest_framework.views import APIView
+from django.db import transaction
+from rest_framework import viewsets
 from rest_framework.response import Response
-from rest_framework import status
-from .models import Producto
-from .serializers import ProductoSerializer
+
+from usuarios.permissions import EsPersonalInternoOLectura
+
+from .cache import CACHE_TTL_PRODUCTOS, clave_lista_productos
+from .models import Categoria, Producto
+from .serializers import CategoriaSerializer, ProductoSerializer
 from .tasks import warmup_product_cache
 
-CACHE_TTL = 60 * 5
-CACHE_KEY_PRODUCTOS = 'productos_list_v1'
+
+def invalidar_y_recalentar_productos():
+    cache.clear()
+    transaction.on_commit(warmup_product_cache.delay)
 
 
-def get_productos_cache_key(request):
-    return CACHE_KEY_PRODUCTOS
+class CategoriaViewSet(viewsets.ModelViewSet):
+    queryset = Categoria.objects.all().order_by('nombre')
+    serializer_class = CategoriaSerializer
+    permission_classes = [EsPersonalInternoOLectura]
+
+    def perform_create(self, serializer):
+        serializer.save()
+        invalidar_y_recalentar_productos()
+
+    def perform_update(self, serializer):
+        serializer.save()
+        invalidar_y_recalentar_productos()
+
+    def perform_destroy(self, instance):
+        instance.delete()
+        invalidar_y_recalentar_productos()
 
 
-class ProductoMixin:
-    def get_queryset(self):
-        # Eager loading para evitar N+1 en la relación Producto -> Categoria.
-        # Seleccionamos sólo los campos necesarios para reducir la cantidad de datos.
-        return Producto.objects.select_related('categoria').only(
-            'id', 'nombre', 'categoria', 'categoria__nombre'
-        ).order_by('id')
-
-
-class ProductoListAPIView(ProductoMixin, APIView):
-    permission_classes = [permissions.AllowAny]
-
-    def get(self, request):
-        cache_key = get_productos_cache_key(request)
-        data = cache.get(cache_key)
-
-        # Cache-aside: si no existe el valor, se carga desde la DB y se almacena.
-        if data is None:
-            productos = self.get_queryset().all()
-            serializer = ProductoSerializer(productos, many=True)
-            data = serializer.data
-            cache.set(cache_key, data, CACHE_TTL)
-        return Response(data, status=status.HTTP_200_OK)
-
-
-class ProductoViewSet(ProductoMixin, viewsets.ModelViewSet):
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+class ProductoViewSet(viewsets.ModelViewSet):
     serializer_class = ProductoSerializer
+    permission_classes = [EsPersonalInternoOLectura]
+
+    def get_queryset(self):
+        return Producto.objects.select_related('categoria').order_by('id')
 
     def list(self, request, *args, **kwargs):
-        cache_key = get_productos_cache_key(request)
+        cache_key = clave_lista_productos(request.get_full_path())
         data = cache.get(cache_key)
         if data is not None:
             return Response(data)
 
         queryset = self.filter_queryset(self.get_queryset())
         page = self.paginate_queryset(queryset)
+        serializer = self.get_serializer(page if page is not None else queryset, many=True)
         if page is not None:
-            serializer = self.get_serializer(page, many=True)
             response = self.get_paginated_response(serializer.data)
             data = response.data
         else:
-            serializer = self.get_serializer(queryset, many=True)
             data = serializer.data
-
-        # Guardamos en caché el resultado del listado para la siguiente petición.
-        cache.set(cache_key, data, CACHE_TTL)
-        warmup_product_cache.delay()
+        cache.set(cache_key, data, CACHE_TTL_PRODUCTOS)
         return Response(data)
 
     def perform_create(self, serializer):
-        instance = serializer.save()
-        # Invalidación explícita de caché después de crear un producto.
-        cache.delete(CACHE_KEY_PRODUCTOS)
-        return instance
+        serializer.save()
+        invalidar_y_recalentar_productos()
 
     def perform_update(self, serializer):
-        instance = serializer.save()
-        # Invalidación explícita de caché después de actualizar un producto.
-        cache.delete(CACHE_KEY_PRODUCTOS)
-        return instance
+        serializer.save()
+        invalidar_y_recalentar_productos()
 
     def perform_destroy(self, instance):
         instance.delete()
-        # Invalidación explícita de caché después de eliminar un producto.
-        cache.delete(CACHE_KEY_PRODUCTOS)
+        invalidar_y_recalentar_productos()

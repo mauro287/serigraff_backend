@@ -18,11 +18,11 @@ urlpatterns = [
     path('api/auth/token/', obtain_auth_token),
 
     # Rutas por app (cada una define su propio urls.py)
-    path('api/usuarios/', include('usuarios.urls')),
-    path('api/proveedores/', include('proveedores.urls')),
-    path('api/productos/', include('productos.urls')),
-    path('api/cotizaciones/', include('cotizaciones.urls')),
-    path('api/pedidos/', include('pedidos.urls')),
+    path('api/', include('usuarios.urls')),
+    path('api/', include('proveedores.urls')),
+    path('api/', include('productos.urls')),
+    path('api/', include('cotizaciones.urls')),
+    path('api/', include('pedidos.urls')),
 ]
 
 # Configuraciones exclusivas para el entorno de desarrollo

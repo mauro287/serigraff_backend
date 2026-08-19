@@ -4,15 +4,17 @@ from django.db import connection
 from rest_framework.test import APIClient
 from django.urls import reverse
 from usuarios.models import Usuario
+from .cache import CACHE_KEY_PRODUCTOS_PRINCIPAL
 from .models import Categoria, Producto
 from django.core.cache import cache
+from unittest.mock import patch
 
 
 @override_settings(CACHES={
     'default': {
         'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
     }
-})
+}, CELERY_TASK_ALWAYS_EAGER=True, CELERY_TASK_EAGER_PROPAGATES=True)
 class ProductoCacheAndNPlusOneTest(TestCase):
     def setUp(self):
         self.categoria = Categoria.objects.create(nombre='Tintas')
@@ -22,7 +24,8 @@ class ProductoCacheAndNPlusOneTest(TestCase):
         self.user = Usuario.objects.create_user(
             username='testuser',
             email='testuser@example.com',
-            password='Pass1234!'
+            password='Pass1234!',
+            tipo_usuario=Usuario.TipoUsuario.PERSONAL_OPERATIVO,
         )
 
     def get_result_list(self, response):
@@ -71,3 +74,19 @@ class ProductoCacheAndNPlusOneTest(TestCase):
         self.assertGreater(len(ctx), 0)
         productos = self.get_result_list(response)
         self.assertEqual(len(productos), 3)
+
+    def test_mutacion_encola_recalentamiento_despues_del_commit(self):
+        cache.set(CACHE_KEY_PRODUCTOS_PRINCIPAL, {'results': []}, 300)
+        self.client.force_authenticate(user=self.user)
+
+        with patch('productos.views.warmup_product_cache.delay') as encolar:
+            with self.captureOnCommitCallbacks(execute=True):
+                response = self.client.post(
+                    '/api/productos/',
+                    {'nombre': 'Lona', 'categoria': self.categoria.id},
+                    format='json',
+                )
+
+        self.assertEqual(response.status_code, 201)
+        self.assertIsNone(cache.get(CACHE_KEY_PRODUCTOS_PRINCIPAL))
+        encolar.assert_called_once_with()
