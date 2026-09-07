@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.db import models
 from productos.models import Producto
+from .storage import diseno_storage
 
 # TODO (siguiente paso): completar Pedido, DetallePedido y Venta con todos
 # sus campos (fecha_pedido, total, cantidad, precio_unitario, metodo_pago, etc.)
@@ -8,6 +9,11 @@ from productos.models import Producto
 
 class Pedido(models.Model):
     class Estado(models.TextChoices):
+        APROBADO = 'APROBADO', 'Aprobado'
+        EN_DISENO = 'EN_DISENO', 'En diseño'
+        EN_PRODUCCION = 'EN_PRODUCCION', 'En producción'
+        LISTO_ENTREGA = 'LISTO_ENTREGA', 'Listo para entregar'
+        ENTREGADO = 'ENTREGADO', 'Entregado'
         PENDIENTE = 'PENDIENTE', 'Pendiente'
         EN_PROCESO = 'EN_PROCESO', 'En proceso'
         COMPLETADO = 'COMPLETADO', 'Completado'
@@ -18,6 +24,8 @@ class Pedido(models.Model):
     )
     estado = models.CharField(max_length=20, choices=Estado.choices, default=Estado.PENDIENTE)
     fecha_pedido = models.DateTimeField(auto_now_add=True)
+    fecha_entrega = models.DateField(null=True, blank=True)
+    actualizado = models.DateTimeField(auto_now=True)
 
     class Meta:
         verbose_name = 'Pedido'
@@ -53,3 +61,32 @@ class Venta(models.Model):
 
     def __str__(self):
         return f'Venta #{self.pk} (Pedido #{self.pedido_id})'
+
+
+class DisenoPedido(models.Model):
+    class Estado(models.TextChoices):
+        PENDIENTE = 'PENDIENTE', 'Pendiente de revisión'
+        APROBADO = 'APROBADO', 'Aprobado por el cliente'
+        CAMBIOS = 'CAMBIOS', 'Cambios solicitados'
+
+    pedido = models.ForeignKey(Pedido, on_delete=models.CASCADE, related_name='disenos')
+    version = models.PositiveIntegerField()
+    imagen = models.ImageField(upload_to='disenos/%Y/%m/', storage=diseno_storage)
+    estado = models.CharField(max_length=12, choices=Estado.choices, default=Estado.PENDIENTE)
+    comentario = models.TextField(blank=True)
+    creado = models.DateTimeField(auto_now_add=True)
+    revisado = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-version']
+        constraints = [models.UniqueConstraint(fields=['pedido', 'version'], name='version_diseno_unica')]
+
+
+class EventoPedido(models.Model):
+    pedido = models.ForeignKey(Pedido, on_delete=models.CASCADE, related_name='eventos')
+    estado = models.CharField(max_length=20)
+    descripcion = models.CharField(max_length=255)
+    fecha = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-fecha', '-id']

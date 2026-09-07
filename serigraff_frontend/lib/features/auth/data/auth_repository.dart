@@ -14,6 +14,8 @@ abstract interface class AuthRepository {
     required String password,
   });
   Future<bool> hasStoredToken();
+  Future<Map<String, dynamic>> getProfile();
+  Future<String?> requestPasswordReset(String email);
   Future<void> logout();
 }
 
@@ -22,6 +24,27 @@ class DjangoAuthRepository implements AuthRepository {
 
   final ApiClient apiClient;
   final SessionTokenStore tokenStore;
+
+  @override
+  Future<String?> requestPasswordReset(String email) async {
+    final response = await apiClient.post(
+      '/auth/password-reset/',
+      body: {'email': email.trim()},
+    );
+    if (response is! Map<String, dynamic> || response['detail'] is! String) {
+      throw const ApiException('El servidor devolvió una respuesta no válida.');
+    }
+    return response['development_notice'] as String?;
+  }
+
+  @override
+  Future<Map<String, dynamic>> getProfile() async {
+    final response = await apiClient.get('/perfil/');
+    if (response is! Map<String, dynamic> || response['username'] is! String) {
+      throw const ApiException('El servidor no devolvió un perfil válido.');
+    }
+    return response;
+  }
 
   @override
   Future<void> login({

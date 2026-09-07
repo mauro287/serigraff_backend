@@ -20,7 +20,9 @@ void main() {
       apiClient: apiClient,
       tokenStore: tokenStore,
     ),
-  )..initialize();
+  );
+  apiClient.onUnauthorized = sessionController.logout;
+  sessionController.initialize();
 
   runApp(
     SerigraffApp(apiClient: apiClient, sessionController: sessionController),

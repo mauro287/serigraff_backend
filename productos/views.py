@@ -2,6 +2,9 @@ from django.core.cache import cache
 from django.db import transaction
 from rest_framework import viewsets
 from rest_framework.response import Response
+import logging
+from redis.exceptions import RedisError
+from kombu.exceptions import OperationalError
 
 from usuarios.permissions import EsPersonalInternoOLectura
 
@@ -12,8 +15,16 @@ from .tasks import warmup_product_cache
 
 
 def invalidar_y_recalentar_productos():
-    cache.clear()
-    transaction.on_commit(warmup_product_cache.delay)
+    try:
+        cache.clear()
+    except RedisError:
+        logging.getLogger(__name__).warning('Caché no disponible; se consultará la base de datos.')
+    def encolar():
+        try:
+            warmup_product_cache.delay()
+        except (RedisError, OperationalError, OSError):
+            logging.getLogger(__name__).warning('Recalentamiento no disponible; carga bajo demanda.')
+    transaction.on_commit(encolar)
 
 
 class CategoriaViewSet(viewsets.ModelViewSet):
@@ -43,7 +54,10 @@ class ProductoViewSet(viewsets.ModelViewSet):
 
     def list(self, request, *args, **kwargs):
         cache_key = clave_lista_productos(request.get_full_path())
-        data = cache.get(cache_key)
+        try:
+            data = cache.get(cache_key)
+        except RedisError:
+            data = None
         if data is not None:
             return Response(data)
 
@@ -55,7 +69,10 @@ class ProductoViewSet(viewsets.ModelViewSet):
             data = response.data
         else:
             data = serializer.data
-        cache.set(cache_key, data, CACHE_TTL_PRODUCTOS)
+        try:
+            cache.set(cache_key, data, CACHE_TTL_PRODUCTOS)
+        except RedisError:
+            pass  # La caché es opcional: el catálogo sigue disponible.
         return Response(data)
 
     def perform_create(self, serializer):

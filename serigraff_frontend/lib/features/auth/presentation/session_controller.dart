@@ -14,6 +14,14 @@ class SessionController extends ChangeNotifier {
   bool _isBusy = false;
   String? _username;
   String? _errorMessage;
+  Map<String, dynamic>? _user;
+  Map<String, dynamic>? get user => _user;
+
+  void updateUser(Map<String, dynamic> profile) {
+    _user = Map.unmodifiable(profile);
+    _username = profile['username'] as String?;
+    notifyListeners();
+  }
 
   SessionStatus get status => _status;
   bool get isBusy => _isBusy;
@@ -22,11 +30,17 @@ class SessionController extends ChangeNotifier {
 
   Future<void> initialize() async {
     try {
-      _status = await repository.hasStoredToken()
-          ? SessionStatus.authenticated
-          : SessionStatus.unauthenticated;
+      if (await repository.hasStoredToken()) {
+        updateUser(await repository.getProfile());
+        _status = SessionStatus.authenticated;
+      } else {
+        _status = SessionStatus.unauthenticated;
+      }
     } catch (_) {
       _status = SessionStatus.unauthenticated;
+      _user = null;
+      _username = null;
+      _errorMessage = 'No se pudo validar tu sesión. Inicia sesión nuevamente.';
     }
     notifyListeners();
   }
@@ -35,13 +49,14 @@ class SessionController extends ChangeNotifier {
     required String username,
     required String password,
   }) async {
+    if (_isBusy) return false;
     _isBusy = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      await repository.login(username: username, password: password);
-      _username = username.trim();
+      await repository.login(username: username.trim(), password: password);
+      updateUser(await repository.getProfile());
       _status = SessionStatus.authenticated;
       return true;
     } on ApiException catch (error) {
@@ -67,6 +82,7 @@ class SessionController extends ChangeNotifier {
     required String address,
     required String password,
   }) async {
+    if (_isBusy) return false;
     _isBusy = true;
     _errorMessage = null;
     notifyListeners();
@@ -81,7 +97,7 @@ class SessionController extends ChangeNotifier {
         address: address,
         password: password,
       );
-      _username = username.trim();
+      updateUser(await repository.getProfile());
       _status = SessionStatus.authenticated;
       return true;
     } on ApiException catch (error) {
@@ -103,11 +119,12 @@ class SessionController extends ChangeNotifier {
   }
 
   Future<void> logout() async {
-    await repository.logout();
+    _user = null;
     _username = null;
     _errorMessage = null;
     _status = SessionStatus.unauthenticated;
     notifyListeners();
+    await repository.logout();
   }
 
   String _registrationErrorMessage(ApiException error) {

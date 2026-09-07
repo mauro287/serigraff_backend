@@ -7,6 +7,10 @@ import 'package:serigraff_frontend/features/auth/presentation/session_controller
 
 class _FakeAuthRepository implements AuthRepository {
   @override
+  Future<String?> requestPasswordReset(String email) async => null;
+  @override
+  Future<Map<String, dynamic>> getProfile() async => {'username': 'cliente'};
+  @override
   Future<bool> hasStoredToken() async => false;
 
   @override

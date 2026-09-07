@@ -4,6 +4,7 @@ import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/app_logo.dart';
 import '../../../shared/widgets/app_text_field.dart';
 import 'register_screen.dart';
+import 'forgot_password_screen.dart';
 import 'session_controller.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -31,7 +32,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _submit() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     await widget.controller.login(
-      username: _usernameController.text,
+      username: _usernameController.text.trim(),
       password: _passwordController.text,
     );
   }
@@ -136,8 +137,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                     obscureText: _obscurePassword,
                                     textInputAction: TextInputAction.done,
                                     validator: (value) =>
-                                        value == null || value.length < 8
-                                        ? 'La contraseña debe tener al menos 8 caracteres.'
+                                        value == null || value.isEmpty
+                                        ? 'Ingresa tu contraseña.'
                                         : null,
                                     suffixIcon: IconButton(
                                       tooltip: _obscurePassword
@@ -179,6 +180,26 @@ class _LoginScreenState extends State<LoginScreen> {
                                     onPressed: _submit,
                                   ),
                                   const SizedBox(height: 8),
+                                  TextButton(
+                                    onPressed: widget.controller.isBusy
+                                        ? null
+                                        : () {
+                                            widget.controller.clearError();
+                                            Navigator.of(context).push(
+                                              MaterialPageRoute<void>(
+                                                builder: (_) =>
+                                                    ForgotPasswordScreen(
+                                                      repository: widget
+                                                          .controller
+                                                          .repository,
+                                                    ),
+                                              ),
+                                            );
+                                          },
+                                    child: const Text(
+                                      '¿Olvidaste tu contraseña?',
+                                    ),
+                                  ),
                                   TextButton.icon(
                                     onPressed: widget.controller.isBusy
                                         ? null
@@ -195,7 +216,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         const SizedBox(height: 18),
                         Text(
-                          'Tus credenciales se guardan de forma segura en el dispositivo.',
+                          'Guardamos tu token de sesión de forma segura, nunca tu contraseña.',
                           textAlign: TextAlign.center,
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: colors.onSurfaceVariant,

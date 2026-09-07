@@ -1,6 +1,18 @@
 from rest_framework import serializers
 
-from .models import DetallePedido, Pedido, Venta
+from .models import DetallePedido, Pedido, Venta, DisenoPedido, EventoPedido
+
+
+class DisenoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DisenoPedido
+        fields = ['id', 'version', 'estado', 'comentario', 'creado', 'revisado']
+
+
+class EventoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EventoPedido
+        fields = ['estado', 'descripcion', 'fecha']
 
 
 class DetallePedidoSerializer(serializers.ModelSerializer):
@@ -18,10 +30,14 @@ class DetallePedidoSerializer(serializers.ModelSerializer):
 
 class PedidoSerializer(serializers.ModelSerializer):
     detalles = DetallePedidoSerializer(many=True, read_only=True)
+    disenos = DisenoSerializer(many=True, read_only=True)
+    eventos = EventoSerializer(many=True, read_only=True)
+    cliente = serializers.CharField(source='usuario.username', read_only=True)
+    cotizacion_id = serializers.IntegerField(source='cotizacion_origen.id', read_only=True, default=None)
 
     class Meta:
         model = Pedido
-        fields = ['id', 'usuario', 'estado', 'fecha_pedido', 'detalles']
+        fields = ['id', 'usuario', 'cliente', 'estado', 'fecha_pedido', 'detalles', 'fecha_entrega', 'actualizado', 'disenos', 'eventos', 'cotizacion_id']
         read_only_fields = ['id', 'usuario', 'fecha_pedido', 'detalles']
 
 

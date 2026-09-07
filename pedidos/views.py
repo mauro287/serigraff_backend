@@ -4,14 +4,15 @@ from usuarios.permissions import EsPersonalInterno, EsPropietarioOPersonal
 
 from .models import DetallePedido, Pedido, Venta
 from .serializers import DetallePedidoSerializer, PedidoSerializer, VentaSerializer
+from .workflow import PedidoWorkflowMixin
 
 
-class PedidoViewSet(viewsets.ModelViewSet):
+class PedidoViewSet(PedidoWorkflowMixin, viewsets.ReadOnlyModelViewSet):
     serializer_class = PedidoSerializer
     permission_classes = [EsPropietarioOPersonal]
 
     def get_queryset(self):
-        queryset = Pedido.objects.select_related('usuario').prefetch_related('detalles__producto').order_by('-fecha_pedido')
+        queryset = Pedido.objects.select_related('usuario', 'cotizacion_origen').prefetch_related('detalles__producto', 'disenos', 'eventos').order_by('-fecha_pedido')
         if self.request.user.es_personal_interno:
             return queryset
         return queryset.filter(usuario=self.request.user)
@@ -20,7 +21,7 @@ class PedidoViewSet(viewsets.ModelViewSet):
         serializer.save(usuario=self.request.user)
 
 
-class DetallePedidoViewSet(viewsets.ModelViewSet):
+class DetallePedidoViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = DetallePedidoSerializer
     permission_classes = [EsPropietarioOPersonal]
 

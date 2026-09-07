@@ -8,6 +8,7 @@ import '../../orders/presentation/orders_screen.dart';
 import '../../products/data/products_repository.dart';
 import '../../products/presentation/products_screen.dart';
 import '../../profile/presentation/profile_screen.dart';
+import '../../profile/data/profile_repository.dart';
 import '../../quotes/data/quotes_repository.dart';
 import '../../quotes/presentation/quotes_screen.dart';
 import 'home_screen.dart';
@@ -49,7 +50,10 @@ class _HomeShellState extends State<HomeShell> {
       ProductsScreen(repository: ProductsRepository(widget.apiClient)),
       QuotesScreen(repository: QuotesRepository(widget.apiClient)),
       OrdersScreen(repository: OrdersRepository(widget.apiClient)),
-      ProfileScreen(controller: widget.sessionController),
+      ProfileScreen(
+        controller: widget.sessionController,
+        repository: ProfileRepository(widget.apiClient),
+      ),
     ];
 
     return Scaffold(

@@ -40,18 +40,25 @@ class EndpointsComercialesTest(TestCase):
         proveedor = self.client.post('/api/proveedores/', {'nombre_empresa': 'Proveedor Uno'}, format='json')
         self.assertEqual(proveedor.status_code, 201)
 
-        cotizacion = self.client.post('/api/cotizaciones/', {}, format='json')
+        cliente = Usuario.objects.get(username='cliente')
+        self.client.force_authenticate(cliente)
+        cotizacion = self.client.post('/api/cotizaciones/', {
+            'descripcion': 'Banner para evento', 'producto': self.producto.id, 'cantidad': 2,
+        }, format='json')
         self.assertEqual(cotizacion.status_code, 201)
-
-        pedido = self.client.post('/api/pedidos/', {}, format='json')
-        self.assertEqual(pedido.status_code, 201)
-
-        detalle = self.client.post(
-            '/api/detalle-pedidos/',
-            {'pedido': pedido.data['id'], 'producto': self.producto.id, 'cantidad': 2},
-            format='json',
-        )
-        self.assertEqual(detalle.status_code, 201)
-
-        venta = self.client.post('/api/ventas/', {'pedido': pedido.data['id']}, format='json')
+        self.assertEqual(self.client.post('/api/pedidos/', {}, format='json').status_code, 405)
+        self.client.force_authenticate(self.personal)
+        path = f"/api/cotizaciones/{cotizacion.data['id']}/"
+        self.assertEqual(self.client.patch(path, {'total_estimado': '60.00'}, format='json').status_code, 200)
+        self.assertEqual(self.client.post(path + 'enviar_para_aprobacion/').status_code, 200)
+        self.client.force_authenticate(cliente)
+        aprobacion = self.client.post(path + 'aprobar/')
+        self.assertEqual(aprobacion.status_code, 200)
+        pedido_id = aprobacion.data['pedido_generado']
+        pedido = self.client.get(f'/api/pedidos/{pedido_id}/')
+        self.assertEqual(pedido.status_code, 200)
+        self.assertEqual(pedido.data['detalles'][0]['cantidad'], 2)
+        self.assertEqual(self.client.post('/api/detalle-pedidos/', {}, format='json').status_code, 405)
+        self.client.force_authenticate(self.personal)
+        venta = self.client.post('/api/ventas/', {'pedido': pedido_id}, format='json')
         self.assertEqual(venta.status_code, 201)

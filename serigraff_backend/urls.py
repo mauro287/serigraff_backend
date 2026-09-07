@@ -9,8 +9,11 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from rest_framework.authtoken.views import obtain_auth_token
+from usuarios.password_reset import SerigraffPasswordResetConfirmView, SerigraffPasswordResetCompleteView
 
 urlpatterns = [
+    path('recuperar/<uidb64>/<token>/', SerigraffPasswordResetConfirmView.as_view(), name='password_reset_confirm'),
+    path('recuperar/completado/', SerigraffPasswordResetCompleteView.as_view(), name='password_reset_complete'),
     path('admin/', admin.site.urls),
 
     # Autenticación por token de DRF y rutas de sesión para la app móvil

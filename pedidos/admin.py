@@ -12,6 +12,13 @@ class PedidoAdmin(admin.ModelAdmin):
     list_display = ('id', 'usuario', 'estado', 'fecha_pedido')
     list_filter = ('estado',)
     inlines = [DetallePedidoInline]
+    readonly_fields = ('estado', 'fecha_entrega', 'actualizado')
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 @admin.register(Venta)

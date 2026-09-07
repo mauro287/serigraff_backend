@@ -27,13 +27,16 @@ class SerigraffApp extends StatelessWidget {
           value: sessionController,
         ),
       ],
-      child: MaterialApp(
-        title: 'Serigraff',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.light,
-        darkTheme: AppTheme.dark,
-        themeMode: ThemeMode.system,
-        home: const _SessionGate(),
+      child: Consumer<SessionController>(
+        builder: (context, session, _) => MaterialApp(
+          key: ValueKey(session.status),
+          title: 'Serigraff',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.light,
+          darkTheme: AppTheme.dark,
+          themeMode: ThemeMode.system,
+          home: const _SessionGate(),
+        ),
       ),
     );
   }

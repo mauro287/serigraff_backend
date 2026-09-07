@@ -43,7 +43,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Future<void> _submit() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
-    final success = await widget.controller.register(
+    await widget.controller.register(
       username: _usernameController.text,
       email: _emailController.text,
       firstName: _firstNameController.text,
@@ -52,10 +52,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
       address: _addressController.text,
       password: _passwordController.text,
     );
-
-    if (success && mounted) {
-      Navigator.of(context).popUntil((route) => route.isFirst);
-    }
   }
 
   String? _required(String? value, String message) {
@@ -190,6 +186,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                       label: 'Teléfono (opcional)',
                                       prefixIcon: Icons.phone_outlined,
                                       keyboardType: TextInputType.phone,
+                                      validator: (value) {
+                                        final phone = value?.trim() ?? '';
+                                        if (phone.isEmpty) return null;
+                                        return RegExp(r'^\+?[0-9 ()-]{7,20}$')
+                                                .hasMatch(phone)
+                                            ? null
+                                            : 'Ingresa un teléfono válido.';
+                                      },
                                       textInputAction: TextInputAction.next,
                                       autofillHints: const [
                                         AutofillHints.telephoneNumber,

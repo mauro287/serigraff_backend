@@ -3,9 +3,15 @@ import 'package:serigraff_frontend/features/auth/data/auth_repository.dart';
 import 'package:serigraff_frontend/features/auth/presentation/session_controller.dart';
 
 class _FakeAuthRepository implements AuthRepository {
+  @override
+  Future<String?> requestPasswordReset(String email) async => null;
   bool hasToken = false;
   bool loginCalled = false;
   bool registerCalled = false;
+  String username = 'cliente';
+
+  @override
+  Future<Map<String, dynamic>> getProfile() async => {'username': username};
 
   @override
   Future<bool> hasStoredToken() async => hasToken;
@@ -30,6 +36,7 @@ class _FakeAuthRepository implements AuthRepository {
     required String password,
   }) async {
     registerCalled = true;
+    this.username = username;
     hasToken = true;
   }
 
@@ -38,6 +45,18 @@ class _FakeAuthRepository implements AuthRepository {
 }
 
 void main() {
+  test('recupera el perfil al restaurar y lo elimina al salir', () async {
+    final repository = _FakeAuthRepository()..hasToken = true;
+    final controller = SessionController(repository: repository);
+    await controller.initialize();
+    expect(controller.status, SessionStatus.authenticated);
+    expect(controller.user?['username'], 'cliente');
+    await controller.logout();
+    expect(controller.status, SessionStatus.unauthenticated);
+    expect(controller.user, isNull);
+    expect(controller.username, isNull);
+    expect(repository.hasToken, isFalse);
+  });
   test('cambia de sesión no autenticada a autenticada', () async {
     final repository = _FakeAuthRepository();
     final controller = SessionController(repository: repository);

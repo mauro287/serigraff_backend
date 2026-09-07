@@ -18,6 +18,26 @@ class _TokenStore implements SessionTokenStore {
 }
 
 void main() {
+  for (final status in [401, 403]) {
+    test('$status distingue sesión inválida de permisos', () async {
+      final store = _TokenStore();
+      var invalidations = 0;
+      final client = ApiClient(
+        baseUrl: 'http://localhost/api',
+        tokenStore: store,
+        httpClient: MockClient(
+          (_) async => http.Response('{"detail":"error"}', status),
+        ),
+      );
+      client.onUnauthorized = () async {
+        invalidations++;
+        await store.clear();
+      };
+      await expectLater(client.get('/perfil/'), throwsException);
+      expect(invalidations, status == 401 ? 1 : 0);
+      expect(store.token, status == 401 ? isNull : isNotNull);
+    });
+  }
   test('envía el token DRF y entiende respuestas paginadas', () async {
     final client = ApiClient(
       baseUrl: 'http://localhost:8000/api/',

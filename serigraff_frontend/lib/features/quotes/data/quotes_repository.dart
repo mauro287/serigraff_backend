@@ -14,10 +14,32 @@ class QuotesRepository {
         .toList(growable: false);
   }
 
-  Future<QuoteRequest> createBasicQuote() async {
-    final response = await apiClient.post('/cotizaciones/');
+  Future<QuoteRequest> createQuote(QuoteDraft quote) async {
+    final response = await apiClient.post(
+      '/cotizaciones/',
+      body: quote.toJson(),
+    );
     if (response is! Map<String, dynamic>) {
       throw const FormatException('Respuesta de cotización inválida.');
+    }
+    return QuoteRequest.fromJson(response);
+  }
+
+  Future<QuoteRequest> approveQuote(int id) async {
+    final response = await apiClient.post('/cotizaciones/$id/aprobar/');
+    if (response is! Map<String, dynamic>) {
+      throw const FormatException('Respuesta de aprobación inválida.');
+    }
+    return QuoteRequest.fromJson(response);
+  }
+
+  Future<QuoteRequest> addImages(int id, List<UploadFile> files) async {
+    final response = await apiClient.postMultipart(
+      '/cotizaciones/$id/archivos/',
+      files,
+    );
+    if (response is! Map<String, dynamic>) {
+      throw const FormatException('Respuesta de archivos inválida.');
     }
     return QuoteRequest.fromJson(response);
   }
