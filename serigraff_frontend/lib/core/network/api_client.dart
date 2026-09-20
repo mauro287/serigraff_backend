@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 
 import '../../config/app_config.dart';
 import '../errors/api_exception.dart';
@@ -50,13 +51,22 @@ class ApiClient {
           'archivos',
           file.bytes,
           filename: file.name,
+          contentType: MediaType.parse(switch (file.name
+              .split('.')
+              .last
+              .toLowerCase()) {
+            'png' => 'image/png',
+            'webp' => 'image/webp',
+            'jpg' || 'jpeg' => 'image/jpeg',
+            _ => 'application/octet-stream',
+          }),
         ),
       );
     }
     try {
       final response = await http.Response.fromStream(
-        await request.send().timeout(AppConfig.requestTimeout),
-      );
+        await _httpClient.send(request).timeout(AppConfig.requestTimeout),
+      ).timeout(AppConfig.requestTimeout);
       final decoded = response.body.trim().isEmpty
           ? null
           : jsonDecode(utf8.decode(response.bodyBytes));

@@ -1,4 +1,5 @@
 from django.db import transaction
+import hashlib
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError
@@ -62,6 +63,7 @@ class CotizacionViewSet(viewsets.ModelViewSet):
         raise PermissionDenied('Las cotizaciones se conservan para mantener su historial.')
 
     @action(detail=True, methods=['post'])
+    @transaction.atomic
     def archivos(self, request, pk=None):
         cotizacion = self.get_object()
         if cotizacion.usuario_id != request.user.id:
@@ -81,7 +83,13 @@ class CotizacionViewSet(viewsets.ModelViewSet):
                 raise ValidationError({'archivos': 'Cada imagen debe pesar como máximo 10 MB.'})
 
         for archivo in archivos:
-            ArchivoCotizacion.objects.create(cotizacion=cotizacion, archivo=archivo)
+            digest = hashlib.sha256()
+            for chunk in archivo.chunks():
+                digest.update(chunk)
+            archivo.seek(0)
+            ArchivoCotizacion.objects.get_or_create(
+                cotizacion=cotizacion, huella=digest.hexdigest(), defaults={'archivo': archivo},
+            )
         registrar_accion(
             usuario=request.user,
             accion='ARCHIVOS_COTIZACION_ADJUNTADOS',

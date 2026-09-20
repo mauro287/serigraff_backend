@@ -62,6 +62,38 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byType(HomeShell), findsOneWidget);
       expect(session.user?['first_name'], 'Ana');
+      expect(find.byTooltip('Volver'), findsNothing);
+      await tester.tap(find.byType(NavigationDestination).at(1));
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
+        1,
+      );
+      await tester.enterText(find.byType(TextField), 'banner');
+      await tester.tap(find.byType(NavigationDestination).at(3));
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
+        3,
+      );
+      await tester.tap(find.byTooltip('Volver'));
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
+        1,
+      );
+      expect(find.text('banner'), findsOneWidget);
+      // Seleccionar la misma pestaña no agrega pasos duplicados al historial.
+      await tester.tap(find.byType(NavigationDestination).at(1));
+      await tester.pumpAndSettle();
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
+        0,
+      );
+      expect(find.byTooltip('Volver'), findsNothing);
+      expect(session.user?['first_name'], 'Ana');
       final context = tester.element(find.byType(HomeShell));
       showDialog<void>(
         context: context,

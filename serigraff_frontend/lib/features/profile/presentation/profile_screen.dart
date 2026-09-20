@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/native/native_capture_screen.dart';
+
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/app_text_field.dart';
 import '../../auth/presentation/session_controller.dart';
@@ -46,6 +48,54 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _ProfileForm(repository: widget.repository, profile: profile),
     );
     if (saved == true && mounted) await _reload();
+  }
+
+  Future<void> _location(Map<String, dynamic> profile) async {
+    final owner = profile['id'];
+    if (owner == null) return;
+    final saved = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => NativeCaptureScreen(
+          draftKey: 'user_${owner}_location',
+          camera: false,
+          isCurrentUser: () => widget.controller.user?['id'] == owner,
+          send: (location, _) async {
+            if (widget.controller.user?['id'] != owner) {
+              throw StateError('La sesión cambió.');
+            }
+            final updated = await widget.repository.updateProfile(location!);
+            if (widget.controller.user?['id'] == owner) {
+              widget.controller.updateUser(updated);
+            }
+          },
+        ),
+      ),
+    );
+    if (saved == true && mounted) await _reload();
+  }
+
+  Future<void> _removeLocation() async {
+    try {
+      final updated = await widget.repository.updateProfile({
+        'latitud_entrega': null,
+        'longitud_entrega': null,
+        'precision_entrega': null,
+      });
+      if (!mounted) return;
+      widget.controller.updateUser(updated);
+      await _reload();
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'No se pudo borrar la ubicación del servidor. Reintenta cuando tengas conexión.',
+            ),
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -96,6 +146,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
           const SizedBox(height: 16),
+          if (profile['latitud_entrega'] != null) ...[
+            Text(
+              'Ubicación enviada: ${profile['latitud_entrega']}, ${profile['longitud_entrega']}',
+            ),
+            TextButton(
+              onPressed: _removeLocation,
+              child: const Text('Eliminar ubicación del servidor'),
+            ),
+          ],
+          OutlinedButton.icon(
+            onPressed: () => _location(profile),
+            icon: const Icon(Icons.my_location),
+            label: const Text('Ubicación de entrega / borrador'),
+          ),
           AppButton(
             label: 'Editar datos',
             icon: Icons.edit_outlined,

@@ -29,6 +29,7 @@ class HomeShell extends StatefulWidget {
 
 class _HomeShellState extends State<HomeShell> {
   int _currentIndex = 0;
+  final List<int> _pageHistory = [];
 
   static const _titles = [
     'Inicio',
@@ -38,7 +39,18 @@ class _HomeShellState extends State<HomeShell> {
     'Mi perfil',
   ];
 
-  void _selectPage(int index) => setState(() => _currentIndex = index);
+  void _selectPage(int index) {
+    if (index == _currentIndex) return;
+    setState(() {
+      _pageHistory.add(_currentIndex);
+      _currentIndex = index;
+    });
+  }
+
+  void _goBack() {
+    if (_pageHistory.isEmpty) return;
+    setState(() => _currentIndex = _pageHistory.removeLast());
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -56,47 +68,61 @@ class _HomeShellState extends State<HomeShell> {
       ),
     ];
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Row(
-          children: [
-            const AppLogo(size: 38),
-            const SizedBox(width: 12),
-            Expanded(child: Text(_titles[_currentIndex])),
+    return PopScope<void>(
+      canPop: _pageHistory.isEmpty,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) _goBack();
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          automaticallyImplyLeading: false,
+          leading: _pageHistory.isEmpty
+              ? null
+              : IconButton(
+                  tooltip: 'Volver',
+                  icon: const Icon(Icons.arrow_back_rounded),
+                  onPressed: _goBack,
+                ),
+          title: Row(
+            children: [
+              const AppLogo(size: 38),
+              const SizedBox(width: 12),
+              Expanded(child: Text(_titles[_currentIndex])),
+            ],
+          ),
+        ),
+        body: IndexedStack(index: _currentIndex, children: pages),
+        bottomNavigationBar: NavigationBar(
+          selectedIndex: _currentIndex,
+          onDestinationSelected: _selectPage,
+          destinations: const [
+            NavigationDestination(
+              icon: Icon(Icons.home_outlined),
+              selectedIcon: Icon(Icons.home_rounded),
+              label: 'Inicio',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.inventory_2_outlined),
+              selectedIcon: Icon(Icons.inventory_2_rounded),
+              label: 'Catálogo',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.request_quote_outlined),
+              selectedIcon: Icon(Icons.request_quote_rounded),
+              label: 'Cotiza',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.local_shipping_outlined),
+              selectedIcon: Icon(Icons.local_shipping_rounded),
+              label: 'Pedidos',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.person_outline_rounded),
+              selectedIcon: Icon(Icons.person_rounded),
+              label: 'Perfil',
+            ),
           ],
         ),
-      ),
-      body: IndexedStack(index: _currentIndex, children: pages),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
-        onDestinationSelected: _selectPage,
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home_rounded),
-            label: 'Inicio',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.inventory_2_outlined),
-            selectedIcon: Icon(Icons.inventory_2_rounded),
-            label: 'Catálogo',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.request_quote_outlined),
-            selectedIcon: Icon(Icons.request_quote_rounded),
-            label: 'Cotiza',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.local_shipping_outlined),
-            selectedIcon: Icon(Icons.local_shipping_rounded),
-            label: 'Pedidos',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline_rounded),
-            selectedIcon: Icon(Icons.person_rounded),
-            label: 'Perfil',
-          ),
-        ],
       ),
     );
   }

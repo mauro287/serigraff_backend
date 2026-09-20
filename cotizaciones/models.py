@@ -56,12 +56,14 @@ class Cotizacion(models.Model):
 
 
 class ArchivoCotizacion(models.Model):
+    huella = models.CharField(max_length=64, blank=True, null=True)
     cotizacion = models.ForeignKey(Cotizacion, on_delete=models.CASCADE, related_name='archivos')
     archivo = models.FileField(upload_to='cotizaciones/%Y/%m/')
     fecha_carga = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         verbose_name = 'Archivo de cotización'
+        constraints = [models.UniqueConstraint(fields=['cotizacion', 'huella'], name='imagen_unica_por_cotizacion')]
         verbose_name_plural = 'Archivos de cotización'
         ordering = ['fecha_carga']
 

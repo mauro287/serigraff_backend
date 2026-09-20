@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:provider/provider.dart';
+
+import '../../../core/native/native_capture_screen.dart';
+import '../../auth/presentation/session_controller.dart';
 
 import '../../../core/network/api_client.dart';
 import '../../../shared/widgets/app_button.dart';
@@ -90,7 +94,9 @@ class _QuotesScreenState extends State<QuotesScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Cotización aprobada. Pedido creado, pendiente de diseño.'),
+          content: Text(
+            'Cotización aprobada. Pedido creado, pendiente de diseño.',
+          ),
         ),
       );
       await _reload();
@@ -102,13 +108,55 @@ class _QuotesScreenState extends State<QuotesScreen> {
   }
 
   Future<void> _attachImages(QuoteRequest quote) async {
-    final selected = await FilePicker.pickFiles(type: FileType.image);
-    final files = <UploadFile>[];
-    for (final file in selected) {
-      files.add(UploadFile(name: file.name, bytes: await file.readAsBytes()));
+    final camera = await showDialog<bool>(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: const Text('Referencia para la cotización'),
+        children: [
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Tomar foto / recuperar borrador'),
+          ),
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Adjuntar archivo'),
+          ),
+        ],
+      ),
+    );
+    if (camera == null || !mounted) return;
+    if (camera) {
+      final session = context.read<SessionController>();
+      final owner = session.user?['id'];
+      if (owner == null) return;
+      final saved = await Navigator.push<bool>(
+        context,
+        MaterialPageRoute(
+          builder: (_) => NativeCaptureScreen(
+            draftKey: 'user_${owner}_quote_${quote.id}',
+            camera: true,
+            isCurrentUser: () => session.user?['id'] == owner,
+            send: (_, photo) async {
+              if (session.user?['id'] != owner) {
+                throw StateError('La sesión cambió.');
+              }
+              await widget.repository.addImages(quote.id, [
+                UploadFile(name: 'referencia.jpg', bytes: photo!),
+              ]);
+            },
+          ),
+        ),
+      );
+      if (saved == true && mounted) await _reload();
+      return;
     }
-    if (files.isEmpty) return;
     try {
+      final selected = await FilePicker.pickFiles(type: FileType.image);
+      final files = <UploadFile>[];
+      for (final file in selected) {
+        files.add(UploadFile(name: file.name, bytes: await file.readAsBytes()));
+      }
+      if (files.isEmpty) return;
       await widget.repository.addImages(quote.id, files);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -207,7 +255,7 @@ class _QuotesScreenState extends State<QuotesScreen> {
                             '${quote.widthCm != null && quote.heightCm != null ? ' · ${quote.widthCm} × ${quote.heightCm} cm' : ''}'
                             '${quote.estimatedTotal != null ? '\nValor estimado: USD ${quote.estimatedTotal!.toStringAsFixed(2)}' : ''}'
                             '${quote.scheduledDeliveryDate != null ? '\nEntrega programada: ${quote.scheduledDeliveryDate!.day}/${quote.scheduledDeliveryDate!.month}/${quote.scheduledDeliveryDate!.year}${quote.isUrgent ? ' · Urgente' : ''}' : ''}'
-                            '${quote.status == 'PENDIENTE' ? '\nMantén pulsado para adjuntar logos o imágenes.' : ''}',
+                            '${quote.status == 'PENDIENTE' ? '\nToca para tomar una foto o adjuntar imágenes.' : ''}',
                           ),
                         ),
                         trailing: Column(
@@ -221,6 +269,8 @@ class _QuotesScreenState extends State<QuotesScreen> {
                         ),
                         onTap: quote.status == 'PENDIENTE_APROBACION'
                             ? () => _approveQuote(quote)
+                            : quote.status == 'PENDIENTE'
+                            ? () => _attachImages(quote)
                             : null,
                         onLongPress: quote.status == 'PENDIENTE'
                             ? () => _attachImages(quote)
