@@ -1,4 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+
+import '../../notifications/notifications_controller.dart';
+import '../../notifications/notifications_screen.dart';
 
 import '../../../core/network/api_client.dart';
 import '../../../shared/widgets/app_logo.dart';
@@ -12,6 +17,7 @@ import '../../profile/data/profile_repository.dart';
 import '../../quotes/data/quotes_repository.dart';
 import '../../quotes/presentation/quotes_screen.dart';
 import 'home_screen.dart';
+import '../../admin/admin_screen.dart';
 
 class HomeShell extends StatefulWidget {
   const HomeShell({
@@ -27,7 +33,44 @@ class HomeShell extends StatefulWidget {
   State<HomeShell> createState() => _HomeShellState();
 }
 
-class _HomeShellState extends State<HomeShell> {
+class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
+  late final NotificationsController _notices;
+  Timer? _poll;
+
+  @override
+  void initState() {
+    super.initState();
+    _notices = NotificationsController(widget.apiClient);
+    WidgetsBinding.instance.addObserver(this);
+    _startPolling();
+  }
+
+  void _startPolling() {
+    _poll?.cancel();
+    unawaited(_notices.refresh());
+    _poll = Timer.periodic(
+      const Duration(seconds: 15),
+      (_) => _notices.refresh(),
+    );
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _startPolling();
+    } else {
+      _poll?.cancel();
+    }
+  }
+
+  @override
+  void dispose() {
+    _poll?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    _notices.dispose();
+    super.dispose();
+  }
+
   int _currentIndex = 0;
   final List<int> _pageHistory = [];
 
@@ -75,6 +118,37 @@ class _HomeShellState extends State<HomeShell> {
       },
       child: Scaffold(
         appBar: AppBar(
+          actions: [
+            if (widget.sessionController.user?['es_administrador'] == true)
+              IconButton(
+                tooltip: 'Administración',
+                icon: const Icon(Icons.admin_panel_settings_outlined),
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => AdminScreen(api: widget.apiClient),
+                  ),
+                ),
+              ),
+            ListenableBuilder(
+              listenable: _notices,
+              builder: (context, _) => IconButton(
+                tooltip: 'Notificaciones: ${_notices.unread} sin leer',
+                icon: Badge(
+                  isLabelVisible: _notices.unread > 0,
+                  label: Text('${_notices.unread}'),
+                  child: const Icon(Icons.notifications_outlined),
+                ),
+                onPressed: () {
+                  unawaited(_notices.refresh());
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => NotificationsScreen(controller: _notices),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
           automaticallyImplyLeading: false,
           leading: _pageHistory.isEmpty
               ? null

@@ -15,7 +15,8 @@ import '../data/quote.dart';
 import '../data/quotes_repository.dart';
 
 class QuotesScreen extends StatefulWidget {
-  const QuotesScreen({required this.repository, super.key});
+  const QuotesScreen({required this.repository, this.quoteId, super.key});
+  final int? quoteId;
 
   final QuotesRepository repository;
 
@@ -30,11 +31,18 @@ class _QuotesScreenState extends State<QuotesScreen> {
   @override
   void initState() {
     super.initState();
-    _quotes = widget.repository.getQuotes();
+    _quotes = _fetchQuotes();
+  }
+
+  Future<List<QuoteRequest>> _fetchQuotes() async {
+    if (widget.quoteId != null) {
+      return [await widget.repository.getQuote(widget.quoteId!)];
+    }
+    return widget.repository.getQuotes();
   }
 
   Future<void> _reload() async {
-    final request = widget.repository.getQuotes();
+    final request = _fetchQuotes();
     setState(() => _quotes = request);
     await request;
   }
@@ -175,40 +183,41 @@ class _QuotesScreenState extends State<QuotesScreen> {
     final colors = Theme.of(context).colorScheme;
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: colors.primaryContainer,
-              borderRadius: BorderRadius.circular(18),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  'Solicita una cotización',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: colors.onPrimaryContainer,
-                    fontWeight: FontWeight.w800,
+        if (widget.quoteId == null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: colors.primaryContainer,
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'Solicita una cotización',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: colors.onPrimaryContainer,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Describe tu pedido, indica cantidades, medidas y la fecha en que lo necesitas.',
-                  style: TextStyle(color: colors.onPrimaryContainer),
-                ),
-                const SizedBox(height: 14),
-                AppButton(
-                  label: 'Nueva cotización',
-                  icon: Icons.add_rounded,
-                  isLoading: _isCreating,
-                  onPressed: _openQuoteForm,
-                ),
-              ],
+                  const SizedBox(height: 6),
+                  Text(
+                    'Describe tu pedido, indica cantidades, medidas y la fecha en que lo necesitas.',
+                    style: TextStyle(color: colors.onPrimaryContainer),
+                  ),
+                  const SizedBox(height: 14),
+                  AppButton(
+                    label: 'Nueva cotización',
+                    icon: Icons.add_rounded,
+                    isLoading: _isCreating,
+                    onPressed: _openQuoteForm,
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
         Expanded(
           child: FutureBuilder<List<QuoteRequest>>(
             future: _quotes,
@@ -244,9 +253,17 @@ class _QuotesScreenState extends State<QuotesScreen> {
                         leading: const CircleAvatar(
                           child: Icon(Icons.request_quote_outlined),
                         ),
-                        title: Text(
-                          'Cotización #${quote.id}',
-                          style: const TextStyle(fontWeight: FontWeight.w800),
+                        title: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Cotización #${quote.id}',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            DateText(quote.requestedAt),
+                          ],
                         ),
                         subtitle: Padding(
                           padding: const EdgeInsets.only(top: 7),
@@ -255,18 +272,11 @@ class _QuotesScreenState extends State<QuotesScreen> {
                             '${quote.widthCm != null && quote.heightCm != null ? ' · ${quote.widthCm} × ${quote.heightCm} cm' : ''}'
                             '${quote.estimatedTotal != null ? '\nValor estimado: USD ${quote.estimatedTotal!.toStringAsFixed(2)}' : ''}'
                             '${quote.scheduledDeliveryDate != null ? '\nEntrega programada: ${quote.scheduledDeliveryDate!.day}/${quote.scheduledDeliveryDate!.month}/${quote.scheduledDeliveryDate!.year}${quote.isUrgent ? ' · Urgente' : ''}' : ''}'
-                            '${quote.status == 'PENDIENTE' ? '\nToca para tomar una foto o adjuntar imágenes.' : ''}',
+                            '${quote.status == 'PENDIENTE' ? '\nToca para tomar una foto o adjuntar imágenes.' : ''}'
+                            '${quote.status == 'PENDIENTE_APROBACION' ? '\nToca para revisar y aprobar el precio.' : ''}',
                           ),
                         ),
-                        trailing: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            StatusChip(quote.status),
-                            const SizedBox(height: 6),
-                            DateText(quote.requestedAt),
-                          ],
-                        ),
+                        trailing: StatusChip(quote.status),
                         onTap: quote.status == 'PENDIENTE_APROBACION'
                             ? () => _approveQuote(quote)
                             : quote.status == 'PENDIENTE'

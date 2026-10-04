@@ -16,6 +16,7 @@ from django.conf import settings
 from django.utils import timezone
 from rest_framework import serializers
 from .serializers import CotizacionSerializer
+from .services import enviar_precio_al_cliente
 
 
 class CotizacionViewSet(viewsets.ModelViewSet):
@@ -103,20 +104,8 @@ class CotizacionViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'], permission_classes=[EsPersonalInterno])
     @transaction.atomic
     def enviar_para_aprobacion(self, request, pk=None):
-        bloquear_agenda()
         cotizacion = self.get_object()
-        if cotizacion.estado != Cotizacion.Estado.PENDIENTE:
-            raise ValidationError('Solo se pueden enviar cotizaciones pendientes.')
-        if cotizacion.total_estimado is None:
-            raise ValidationError({'total_estimado': 'Registra el precio estimado antes de solicitar aprobación.'})
-
-        cotizacion.estado = Cotizacion.Estado.PENDIENTE_APROBACION
-        cotizacion.valida_hasta = cotizacion.valida_hasta or timezone.localdate() + timedelta(days=15)
-        if cotizacion.valida_hasta < timezone.localdate():
-            raise ValidationError('La fecha de vigencia no puede estar vencida.')
-        cotizacion.save(update_fields=['estado', 'valida_hasta'])
-        avisar(cotizacion.usuario, f'Cotización #{cotizacion.pk} lista para aprobar.', cotizacion=cotizacion)
-        registrar_accion(usuario=request.user, accion='COTIZACION_ENVIADA_APROBACION', entidad='Cotizacion', entidad_id=cotizacion.id)
+        cotizacion = enviar_precio_al_cliente(cotizacion.pk, request.user)
         return Response(self.get_serializer(cotizacion).data, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['post'])

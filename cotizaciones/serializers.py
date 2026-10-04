@@ -18,6 +18,7 @@ class ArchivoCotizacionSerializer(serializers.ModelSerializer):
 
 
 class CotizacionSerializer(serializers.ModelSerializer):
+    cliente = serializers.CharField(source='usuario.username', read_only=True)
     descripcion = serializers.CharField(required=True, allow_blank=False)
     producto_nombre = serializers.CharField(source='producto.nombre', read_only=True)
     archivo_diseno_url = serializers.SerializerMethodField(read_only=True)
@@ -26,7 +27,7 @@ class CotizacionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Cotizacion
         fields = [
-            'id', 'usuario', 'producto', 'producto_nombre', 'descripcion', 'cantidad',
+            'id', 'usuario', 'cliente', 'producto', 'producto_nombre', 'descripcion', 'cantidad',
             'ancho_cm', 'alto_cm', 'archivo_diseno', 'archivo_diseno_url',
             'archivos',
             'fecha_entrega_deseada', 'fecha_entrega_programada', 'es_urgente', 'motivo_urgencia',

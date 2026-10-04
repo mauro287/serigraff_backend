@@ -32,6 +32,23 @@ class ApiClient {
 
   Future<Object?> get(String path) => _send('GET', path);
 
+  Future<Uint8List> getBytes(String path) async {
+    final token = await tokenStore.read();
+    final response = await _httpClient
+        .get(
+          _buildUri(path),
+          headers: {if (token != null) 'Authorization': 'Token $token'},
+        )
+        .timeout(AppConfig.requestTimeout);
+    await _checkSession(response.statusCode, token);
+    if (response.statusCode != 200) {
+      throw const ApiException(
+        'No se pudo abrir el archivo. Comprueba tus permisos y la conexión.',
+      );
+    }
+    return response.bodyBytes;
+  }
+
   Future<Object?> post(String path, {Map<String, Object?> body = const {}}) =>
       _send('POST', path, body: body);
 

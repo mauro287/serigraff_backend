@@ -10,8 +10,15 @@ from django.conf import settings
 from django.conf.urls.static import static
 from rest_framework.authtoken.views import obtain_auth_token
 from usuarios.password_reset import SerigraffPasswordResetConfirmView, SerigraffPasswordResetCompleteView
+from rest_framework.routers import DefaultRouter
+from usuarios.mobile_admin import AdminCotizacionViewSet, AdminPedidoViewSet
+
+admin_mobile_router = DefaultRouter()
+admin_mobile_router.register('cotizaciones', AdminCotizacionViewSet, basename='admin-mobile-cotizacion')
+admin_mobile_router.register('pedidos', AdminPedidoViewSet, basename='admin-mobile-pedido')
 
 urlpatterns = [
+    path('api/administracion/', include(admin_mobile_router.urls)),
     path('recuperar/<uidb64>/<token>/', SerigraffPasswordResetConfirmView.as_view(), name='password_reset_confirm'),
     path('recuperar/completado/', SerigraffPasswordResetCompleteView.as_view(), name='password_reset_complete'),
     path('admin/', admin.site.urls),

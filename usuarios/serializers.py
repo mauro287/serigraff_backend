@@ -66,10 +66,15 @@ class PerfilClienteSerializer(serializers.ModelSerializer):
     longitud_entrega = serializers.DecimalField(max_digits=9, decimal_places=6, min_value=-180, max_value=180, required=False, allow_null=True)
     precision_entrega = serializers.FloatField(min_value=0, max_value=100000, required=False, allow_null=True)
     es_personal_interno = serializers.BooleanField(read_only=True)
+    es_administrador = serializers.SerializerMethodField()
+
+    def get_es_administrador(self, obj):
+        return obj.is_superuser or obj.tipo_usuario == Usuario.TipoUsuario.ADMINISTRADOR
+
     class Meta:
         model = Usuario
         fields = [
-            'id', 'username', 'email', 'first_name', 'last_name', 'telefono', 'es_personal_interno',
+            'id', 'username', 'email', 'first_name', 'last_name', 'telefono', 'es_personal_interno', 'es_administrador',
             'cedula', 'lugar_entrega', 'referencia_entrega', 'razon_social', 'ruc',
             'direccion_facturacion', 'correo_facturacion',
             'latitud_entrega', 'longitud_entrega', 'precision_entrega',

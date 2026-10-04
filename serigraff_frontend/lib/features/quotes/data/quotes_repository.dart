@@ -6,6 +6,11 @@ class QuotesRepository {
 
   final ApiClient apiClient;
 
+  Future<QuoteRequest> getQuote(int id) async {
+    final response = await apiClient.get('/cotizaciones/$id/');
+    return QuoteRequest.fromJson(response as Map<String, dynamic>);
+  }
+
   Future<List<QuoteRequest>> getQuotes() async {
     final response = await apiClient.get('/cotizaciones/');
     return apiResults(response)
