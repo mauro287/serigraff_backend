@@ -16,14 +16,14 @@ class RegistroUsuarioAPITests(APITestCase):
                 'last_name': 'Nuevo',
                 'telefono': '0999999999',
                 'direccion': 'Quito',
-                'password': 'clave-segura-123',
+                'password': 'Clave-segura-123!',
             },
             format='json',
         )
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         usuario = Usuario.objects.get(username='cliente_nuevo')
-        self.assertTrue(usuario.check_password('clave-segura-123'))
+        self.assertTrue(usuario.check_password('Clave-segura-123!'))
         self.assertEqual(usuario.tipo_usuario, Usuario.TipoUsuario.CLIENTE)
         self.assertNotIn('password', response.data)
 

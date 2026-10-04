@@ -1,4 +1,6 @@
 from rest_framework import serializers
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError as DjangoValidationError
 import math
 
 from .models import RegistroAccion, SolicitudAcceso, Usuario
@@ -32,6 +34,19 @@ class UsuarioSerializer(serializers.ModelSerializer):
         if usuarios.exists():
             raise serializers.ValidationError('El correo electrónico ya está registrado.')
         return value
+
+    def validate(self, attrs):
+        if 'password' in attrs:
+            # Validate against the incoming identity without mutating the stored user.
+            identity = Usuario(**{
+                field: attrs.get(field, getattr(self.instance, field, ''))
+                for field in ('username', 'first_name', 'last_name', 'email')
+            })
+            try:
+                validate_password(attrs['password'], user=identity)
+            except DjangoValidationError as exc:
+                raise serializers.ValidationError({'password': exc.messages})
+        return attrs
 
     def create(self, validated_data):
         password = validated_data.pop('password')

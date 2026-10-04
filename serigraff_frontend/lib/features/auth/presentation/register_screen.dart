@@ -4,6 +4,7 @@ import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/app_logo.dart';
 import '../../../shared/widgets/app_text_field.dart';
 import 'session_controller.dart';
+import 'password_validator.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({required this.controller, super.key});
@@ -222,10 +223,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                       autofillHints: const [
                                         AutofillHints.newPassword,
                                       ],
-                                      validator: (value) =>
-                                          value == null || value.length < 8
-                                          ? 'Usa al menos 8 caracteres.'
-                                          : null,
+                                      validator: (value) => validateNewPassword(
+                                        value,
+                                        _usernameController.text,
+                                      ),
                                       suffixIcon: IconButton(
                                         tooltip: _obscurePassword
                                             ? 'Mostrar contraseña'

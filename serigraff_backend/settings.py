@@ -146,6 +146,7 @@ AUTH_USER_MODEL = 'usuarios.Usuario'
 
 # Validación de contraseñas
 AUTH_PASSWORD_VALIDATORS = [
+    {'NAME': 'usuarios.validators.PasswordComplexityValidator'},
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
     {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
     {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},

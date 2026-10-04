@@ -25,7 +25,7 @@ class EndpointsComercialesTest(TestCase):
     def test_endpoints_comerciales_crean_recursos(self):
         registro = APIClient().post(
             '/api/usuarios/registro/',
-            {'username': 'cliente', 'password': 'ClaveSegura123'},
+            {'username': 'cliente', 'password': 'ClaveSegura123!'},
             format='json',
         )
         self.assertEqual(registro.status_code, 201)
